@@ -1,0 +1,207 @@
+ls -l richmond_virginia.osm # to find the size of the file
+-----
+# Count the number and types of tags
+import xml.etree.cElementTree as ET
+import pprint
+from collections import defaultdict # used for counting and creating the dictonary.
+
+def count_tags(filename):
+        # YOUR CODE HERE
+        tags= {}
+        counter=[]
+        elem_tag=[] # used in the for loop
+        for event, elem in ET.iterparse(filename):
+            elem_tag.append(elem.tag)
+        d = defaultdict(int)
+        for tag in elem_tag:
+            d[tag] += 1
+        return d
+
+tags = count_tags('richmond_virginia.osm')
+pprint.pprint(tags)
+----------
+# count the number of lower, lower_colon and problemchars we have
+import xml.etree.cElementTree as ET
+import pprint
+import re
+from collections import defaultdict
+
+lower = re.compile(r'^([a-z]|_)*$')
+lower_colon = re.compile(r'^([a-z]|_)*:([a-z]|_)*$')
+problemchars = re.compile(r'[=\+/&<>;\'"\?%#$@\,\. \t\r\n]')
+
+def key_type(element, keys):
+    if element.tag == "tag":
+        m = lower.search(element.attrib['k'])
+        n=  lower_colon.search(element.attrib['k'])
+        v=  problemchars.search(element.attrib['k'])
+
+        if m:
+           keys['lower'] += 1
+	   
+        elif n:
+           keys['lower_colon'] += 1
+        elif v:
+           keys['problemchars'] += 1
+        else:
+            keys['other'] +=1
+         
+        pass
+        
+    return keys
+
+def process_map(filename):
+    keys = {"lower": 0, "lower_colon": 0, "problemchars": 0, "other": 0}
+    for _, element in ET.iterparse(filename):
+        keys = key_type(element, keys)
+
+    return keys
+
+keys = process_map('richmond_virginia.osm')
+pprint.pprint(keys)
+--------------------------
+# Cout the number of users and the number of times it was edited
+import xml.etree.cElementTree as ET
+import pprint
+import operator
+import re
+from collections import defaultdict
+
+def get_user(element):
+    return
+user=[]
+d=defaultdict(int)
+
+def process_map(filename):
+    users = set()
+        
+    for _, element in ET.iterparse(filename):
+        if element.tag=="node" or element.tag=="way" or element.tag=="relation":
+            user.append(element.attrib["user"]) # collects all users that made changes/edits
+            
+    users=set(user) # extracts unique users from the list i.e. user 
+    for k in user:
+       d[k] +=1  # used to count the number of changes made by each user 
+    w= sorted(d.items(), key=operator.itemgetter(1)) # sort users in ascending order of the no of edits they made
+    pprint.pprint(w) # prints users name along with the number of edits they made
+    pass
+
+    return (users)
+
+
+users = process_map('richmond_virginia.osm')
+
+pprint.pprint( len(users)) # print out the total number of users
+pprint.pprint( len(user))  # print out the total number of edits done
+------------------------------------------------------
+----------------------------------------------------------------------------
+# code to clean the data and shape it to a JSON format and ultimately save it in a JSON file
+
+import xml.etree.cElementTree as ET
+import pprint
+import re
+import codecs
+import json
+
+
+lower = re.compile(r'^([a-z]|_)*$')
+lower_colon = re.compile(r'^([a-z]|_)*:([a-z]|_)*$')
+problemchars = re.compile(r'[=\+/&<>;\'"\?%#$@\,\. \t\r\n]')
+
+CREATED = [ "version", "changeset", "timestamp", "user", "uid"]
+
+
+# UPDATE THIS VARIABLE
+mapping = { "Ct": "Court",
+            "St": "Street",
+            "Dr": "Drive",
+            "Rd": "Road",
+            "Ave": "Avenue",
+            "pky": "Parkway",
+            "pkwy": "Parkway",
+            "N.": "North",
+            "S.": "South"
+
+            }
+
+# shape and clean the data
+def shape_element(element):
+    node = {}
+    if element.tag == "node" or element.tag == "way" :
+        
+          node["id"]= element.attrib["id"]
+          node["visible"]="true"
+          node["created"]={}
+          for i in CREATED:
+              node["created"].update({i :element.attrib[i]})
+          if element.tag=="node":
+              node["type"]= "node"
+              node["pos"]= [float(element.attrib["lat"]),float(element.attrib["lon"])]# present only in node tags
+          elif element.tag=="way":
+               node["type"]= "way"
+               node["node_refs"]=[]
+               for nd in element.iter("nd"):
+                   node["node_refs"].append(nd.attrib["ref"])
+
+          node["address"]={}
+          b=[]
+          for tag in element.iter("tag"):
+              
+              if not problemchars.search(tag.attrib["k"]):
+                 if (tag.attrib["k"].find ("addr:")==0):
+                    if (tag.attrib["k"].find ("addr:street")==0) & (tag.attrib["k"].count (":")==1):  # if we have a street address mentioned with just one colon
+
+                       i=0 # used in case a street name matches more than one mapping eg S. Addison St
+                       for x in mapping.keys():
+                           if tag.attrib["v"].find(x)==(len(tag.attrib["v"])-len(x)):
+                              i=i+1
+                              if i==1:
+                                 b=tag.attrib["v"].replace(x,mapping.get(x))
+
+                              else:
+                                 b=b.replace(x,mapping.get(x))
+                              node["address"].update({tag.attrib["k"].replace("addr:",""):b})
+                             
+                           if tag.attrib["v"].find(x)==0 and (x=="N." or x=="S."):
+                              i=i+1
+                              if i==1:
+                                 b=tag.attrib["v"].replace(x,mapping.get(x))
+
+                              else:
+                                 b=b.replace(x,mapping.get(x))
+                              node["address"].update({tag.attrib["k"].replace("addr:",""):b})
+                              
+                    elif (tag.attrib["k"].find ("addr:street")!=0): # for non street addresses
+                         if tag.attrib["k"]== "addr:postcode": 
+			                                
+                            node["address"].update({tag.attrib["k"].replace("addr:",""):tag.attrib["v"][0:5]}) # makes sure the postcode is 5 digits
+			 else:
+                            node["address"].update({tag.attrib["k"].replace("addr:",""):tag.attrib["v"]})
+
+
+
+                 elif tag.attrib["k"].find(':') < 0:# tags that are descriptive of the lcoation/address like amenities 
+			  
+                      node[tag.attrib["k"]]=tag.attrib["v"]
+
+          
+          return node
+    else:
+        return None
+
+# Function to write and save the data in to a JSON file
+def process_map(file_in, pretty = False):
+    
+    file_out = "{0}.json".format(file_in)
+    data = []
+    with codecs.open(file_out, "w") as fo:
+        for _, element in ET.iterparse(file_in):
+            el = shape_element(element)
+            if el:
+                data.append(el)
+                if pretty:
+                    fo.write(json.dumps(el, indent=2)+"\n")
+                else:
+                    fo.write(json.dumps(el) + "\n")
+    return data
+data = process_map('richmond_virginia.osm', False)

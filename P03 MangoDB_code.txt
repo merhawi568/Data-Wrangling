@@ -1,0 +1,83 @@
+# Code to find the most comon restaurant
+from pymongo import MongoClient
+import pprint
+client = MongoClient('localhost:27017')
+db = client.richmond_virginiaD
+def most_common_restaurant(): #collects number of each restaurants available and sorts them in descending order
+    result=db.richmond_virginiaC.aggregate([
+		{"$match": {"amenity":"restaurant"}},
+		{"$group" :{"_id": "$name",
+			   "count": {"$sum":1}}},
+                {"$sort":{"count":-1}}])
+    return result 
+
+result=most_common_restaurant()
+restaurant =[]
+for a in result: 
+  restaurant.append(a)
+pprint.pprint(restaurant[0])
+
+----------------------------------------------------------------------------
+# Code to find the most comon cuisine
+from pymongo import MongoClient
+import pprint
+client = MongoClient('localhost:27017')
+db = client.richmond_virginiaD
+p={"_id" :0,"name":1}
+def most_common_cuisine(): collects number of each cuisine available and sorts them in descending order
+    
+    result=db.richmond_virginiaC.aggregate([
+		{"$match": {"amenity":"restaurant"}},
+		{"$group" :{"_id": "$cuisine",
+			   "count": {"$sum":1}}},
+                {"$sort":{"count":-1}}])
+    return result 
+
+result=most_common_cuisine()
+cuisine =[]
+for a in result: 
+  cuisine.append(a)
+pprint.pprint(cuisine)
+-------------------------------
+# Code to find the most comon fast food chain
+from pymongo import MongoClient
+import pprint
+client = MongoClient('localhost:27017')
+db = client.richmond_virginiaD
+p={"_id" :0,"name":1}
+def most_common_fast_food(): collects number of each chain available and sorts them in descending order
+    
+    result=db.richmond_virginiaC.aggregate([
+		{"$match": {"amenity":"fast_food"}},
+		{"$group" :{"_id": "$name",
+			   "count": {"$sum":1}}},
+                {"$sort":{"count":-1}}])
+    return result 
+
+result=most_common_fast_food()
+chain =[]
+for a in result: 
+  chain.append(a)
+pprint.pprint(chain)
+-----------------------------------------------------
+# Code to find the most comon religion
+from pymongo import MongoClient
+import pprint
+client = MongoClient('localhost:27017')
+db = client.richmond_virginiaD
+p={"_id" :0,"name":1}
+def most_common_religion():#collects number of each religion and sorts them in descending order
+    
+    result=db.richmond_virginiaC.aggregate([
+		{"$match": {"amenity":"place_of_worship"}},
+		{"$group" :{"_id": "$religion",
+			   "count": {"$sum":1}}},
+                {"$sort":{"count":-1}}])
+    return result 
+
+result=most_common_religion()
+religion =[]
+for a in result: 
+  religion.append(a)
+pprint.pprint(religion)
+-------------------------------------------

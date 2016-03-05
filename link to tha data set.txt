@@ -1,0 +1,3 @@
+The data used is downloaded from (https://mapzen.com/data/metro-extracts) for the city of Richmond, VA. 
+The city is the capital of the state of virginia and I have lived for sometime in the state and found this
+would be an interesting to look into.
